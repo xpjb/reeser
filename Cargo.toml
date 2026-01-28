@@ -16,7 +16,7 @@ glutin = "0.28"
 winit = "0.26.1"
 
 png = "0.17.1"
-palette = "0.2.1"
+#palette = "0.3.0"
 assert_hex = "0.2.2"
 
 rustfft = "6.0.1"

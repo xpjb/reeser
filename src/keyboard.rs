@@ -118,13 +118,19 @@ impl Keyboard {
         // layout: white keys are easy
         // what if we assumed all whtie and all black and then had false
 
-        self.held_keys
-            .drain_filter(|k| !inputs.key_held(keys[*k as usize]))
-            .for_each(|k| events.push(KeyboardEvent {
-                uid: khash(self.counters[k as usize]) * khash(k),
+        let released: Vec<u32> = self.held_keys
+            .iter()
+            .filter(|k| !inputs.key_held(keys[**k as usize]))
+            .copied()
+            .collect();
+        for k in &released {
+            events.push(KeyboardEvent {
+                uid: khash(self.counters[*k as usize]) * khash(*k),
                 freq: 0.0,
                 pressed: false,
-            }));
+            });
+        }
+        self.held_keys.retain(|k| inputs.key_held(keys[*k as usize]));
 
         kc.set_depth(1.5);
         kc.set_colour(Vec4::new(0.0, 0.0, 0.0, 1.0));

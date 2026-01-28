@@ -1,4 +1,3 @@
-#![feature(drain_filter)]
 
 
 /* This example expose parameter to pass generator of sample.
