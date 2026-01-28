@@ -56,6 +56,7 @@ impl Application {
         ];
                 
         let uv_shader = make_shader(&gl, uvv, uvf);
+        check_gl_errors(&gl, "after make_shader");
 
         let atlas = ImageBufferA::new_from_file("src/atlas.png")
             .or(ImageBufferA::new_from_file("../../src/atlas.png")
@@ -63,6 +64,7 @@ impl Application {
             .expect("couldn't load atlas from ./atlas.png");
 
         let renderer = KRenderer::new(&gl, uv_shader, atlas);
+        check_gl_errors(&gl, "after KRenderer::new");
 
         let rb = RingBuffer::<SoundMessage>::new(5);
         let (mut prod, mut cons) = rb.split();
@@ -122,6 +124,26 @@ impl Application {
     }
 }
 
+fn check_gl_errors(gl: &glow::Context, label: &str) {
+    unsafe {
+        loop {
+            let err = gl.get_error();
+            if err == glow::NO_ERROR {
+                break;
+            }
+            let err_str = match err {
+                glow::INVALID_ENUM => "INVALID_ENUM",
+                glow::INVALID_VALUE => "INVALID_VALUE",
+                glow::INVALID_OPERATION => "INVALID_OPERATION",
+                glow::INVALID_FRAMEBUFFER_OPERATION => "INVALID_FRAMEBUFFER_OPERATION",
+                glow::OUT_OF_MEMORY => "OUT_OF_MEMORY",
+                _ => "UNKNOWN",
+            };
+            eprintln!("[GL error] {}: {} (0x{:x})", label, err_str, err);
+        }
+    }
+}
+
 fn  make_shader(gl: &glow::Context, vert_paths: &[&str], frag_paths: &[&str]) -> glow::Program {
     unsafe {
         let program = gl.create_program().expect("Cannot create program");
@@ -172,32 +194,32 @@ unsafe fn opengl_boilerplate(xres: f32, yres: f32, event_loop: &glutin::event_lo
 
 
     let gl = glow::Context::from_loader_function(|s| window.get_proc_address(s) as *const _);
+
+    // Debug: print GL info on startup
+    unsafe {
+        let version = gl.get_parameter_string(VERSION);
+        let renderer = gl.get_parameter_string(RENDERER);
+        let vendor = gl.get_parameter_string(VENDOR);
+        println!("[GL] version: {}", version);
+        println!("[GL] renderer: {}", renderer);
+        println!("[GL] vendor: {}", vendor);
+    }
+
     gl.enable(DEPTH_TEST);
     // gl.enable(CULL_FACE);
     gl.blend_func(SRC_ALPHA, ONE_MINUS_SRC_ALPHA);
     gl.enable(BLEND);
-    gl.debug_message_callback(|a, b, c, d, msg| {
-        println!("{} {} {} {} msg: {}", a, b, c, d, msg);
-    });
+
+    // Enable debug output so callback receives messages
+    unsafe {
+        gl.enable(DEBUG_OUTPUT);
+        gl.debug_message_callback(|_source, _typ, _id, _severity, msg| {
+            println!("[GL debug] {}", msg);
+        });
+    }
+    check_gl_errors(&gl, "after opengl_boilerplate");
 
     (gl, window)
-}
-
-fn pa_cubic_amplifier(input: f32) -> f32 {
-    let mut temp = 0.0;
-    let mut output = 0.0;
-    if input < 0.0 {
-        temp = input + 1.0;
-        output = (temp * temp * temp) - 1.0;
-    } else {
-        temp = input - 1.0;
-        output = (temp * temp * temp) + 1.0;
-    }
-    output
-}
-
-fn pa_fuzz(x: f32) -> f32 {
-    pa_cubic_amplifier(pa_cubic_amplifier(pa_cubic_amplifier(pa_cubic_amplifier(x))))
 }
 
 fn sample_next(o: &mut SampleRequestOptions) -> f32 {

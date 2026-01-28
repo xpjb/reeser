@@ -1,6 +1,6 @@
-in vec3 in_pos;
-in vec4 in_colour;
-in vec2 in_uv;
+layout(location = 0) in vec3 in_pos;
+layout(location = 1) in vec4 in_colour;
+layout(location = 2) in vec2 in_uv;
 
 const mat4 projection = mat4(
     2, 0, 0, 0,
